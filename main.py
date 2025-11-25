@@ -103,8 +103,7 @@ def test(model, device, dataloader):
         output = model(data)
         pre = output.argmax(axis=1, keepdims=True)
         correct += pre.eq(target.view_as(pre)).sum().item()
-    print(f"testing acc {correct * 100 / train_dataset.__len__()}%")
-    return correct / train_dataset.__len__()
+    return correct / test_dataset.__len__()
 
 
 if __name__ == "__main__":
@@ -149,8 +148,8 @@ if __name__ == "__main__":
         num_workers=8,
     )
     model = ResNet()
-    optimizer = torch.optim.SGD(
-        model.parameters(), lr=0.1, weight_decay=5e-4, momentum=0.9
+    optimizer = torch.optim.AdamW(
+        model.parameters(), lr=1e-4, weight_decay=0.01
     )
 
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -162,13 +161,22 @@ if __name__ == "__main__":
     model.to(device)
 
     best_acc = 0
-    for x in range(100):
+    cicle = 0
+    count = 0
+    while 1:
         train(model, criterion, optimizer, train_loader, device)
         acc = test(model, device, test_loader)
         scheduler.step(acc)
+        print(f"epoch {cicle} finished\nacc {acc * 100}")
+        cicle+=1
         if acc > best_acc:
             best_acc = acc
             torch.save(model.state_dict(), "./best_model.pth")
-            print("保存最佳模型")
-        print(f"epoch {x} finished")
-    print(f"best acc is {best_acc*100}%")
+            print("saved best model")
+            count = 0
+            continue
+        count += 1
+        if count > 20:
+            print("BERAK")
+            print(f"best acc is {best_acc*100}%")
+            break
